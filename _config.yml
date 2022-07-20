@@ -8,7 +8,7 @@ subtitle: ''
 description: ''
 keywords:
 author: starAndHonor
-language: ZH-CN
+language: zh-CN
 timezone: ''
 
 # URL
@@ -108,3 +108,4 @@ deploy:
   type: git
   repo: https://github.com/starAndHonor/starAndHonor.github.io.git
   branch: main
+mathjax: true

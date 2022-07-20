@@ -40,7 +40,7 @@ external_link:
   exclude: ''
 filename_case: 0
 render_drafts: false
-post_asset_folder: false
+post_asset_folder: true
 relative_link: false
 future: true
 highlight:
@@ -55,7 +55,8 @@ prismjs:
   preprocess: true
   line_number: true
   tab_replace: ''
-
+social_links:
+  github: https://github.com/starAndHonor
 # Home page setting
 # path: Root path for your blogs index page. (default = '')
 # per_page: Posts displayed per page. (0 = disable pagination)
@@ -98,9 +99,7 @@ ignore:
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
 # theme: landscape
-theme: cactus
-theme_config:
-  colorscheme: light
+theme: next
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment

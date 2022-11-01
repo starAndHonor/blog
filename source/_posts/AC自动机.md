@@ -12,7 +12,9 @@ something about AC自动机
    + AC自动机上的每个点是一个状态，每一条边则是一种状态向另一种状态的转移，所以AC自动机可以和DP优雅地结合
    + AC自动机是一张图，所以许多图上算法在AC自动机上任然使用，所以经常构建完以后就变成了图论题
 2. fail指针
-   定义:表示从根节点到该节点所组成字符序列的所有后缀和整个模式字符串集合即整个Trie树中所有前缀两者中的最长公共部分。fail指针的优化作用体现于可以减少不必要的重复匹配，类似于将KMP的border放在树上跳
+   + 定义:表示从根节点到该节点所组成字符序列的所有后缀和整个模式字符串集合即整个Trie树中所有前缀两者中的最长公共部分。
+   + fail指针的优化作用体现于可以减少不必要的重复匹配，类似于将KMP的border放在树上跳。
+   + 将所有的 fail 指针连成边，构成了一棵树
 ## 经典问题
 >给定 n 个模式串和一个文本串t，求有多少个不同的模式串在文本串里出现过。两个模式串不同当且仅当他们编号不同。
 ```cpp
@@ -144,6 +146,7 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
 ```
 > 一个文本串 S 和 n 个模式串 T ，请你分别求出每个模式串 T 在 S 中出现的次数。
 ```cpp
+//Sol1:暴力统计 O(nm)
 string T[MAXN], S;
 struct AC {
   int tr[MAXN][30], fail[MAXN], tot = 0;
@@ -198,6 +201,78 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
   AK.query(S);
   for (int i = 1; i <= n; i++) {
     cout << AK.ans[i] << "\n";
+  }
+}
+```
+```cpp
+//Sol2:构建fail树,在树上差分解决问题O(n+m)
+//字符串问题->图上问题
+string T[MAXN], S;
+struct AC {
+  int tr[MAXN][30], fail[MAXN], tot = 0, end[MAXN];
+  int ans[MAXN];
+  vector<int> F[MAXN]; // fail树
+  queue<int> q;
+  void clear() { mmst0(tr), mmst0(fail), mmst0(end), tot = 0; }
+  void insert(string s, int idx) {
+    int u = 0, len = s.length();
+    for (int v, i = 0; i < len; i++) {
+      v = s[i] - 'a';
+      if (!tr[u][v])
+        tr[u][v] = ++tot;
+      u = tr[u][v];
+    }
+    end[idx] = u; //记录当前字符串结束节点
+  }
+  inline void build() {
+    while (q.size())
+      q.pop();
+    for (int i = 0; i < 26; i++)
+      if (tr[0][i])
+        fail[tr[0][i]] = 0, q.push(tr[0][i]);
+    while (!q.empty()) {
+      int u = q.front();
+      q.pop();
+      for (int i = 0; i < 26; i++)
+        if (tr[u][i])
+          fail[tr[u][i]] = tr[fail[u]][i], q.push(tr[u][i]),
+          F[tr[fail[u]][i]].push_back(tr[u][i]); //构建Fail树
+        else
+          tr[u][i] = tr[fail[u]][i];
+    }
+  }
+  inline void query(string s) {
+    mmst0(ans);
+    int u = 0, len = s.length();
+    for (int i = 0; i < len; i++) {
+      u = tr[u][s[i] - 'a'];
+      ans[u]++;
+    }
+  }
+  //树上差分计算答案
+  inline void dfs(int u) {
+    for (auto v : F[u]) {
+      dfs(v);
+      ans[u] += ans[v];
+    }
+  }
+  inline void get() {
+    for (int i = 0; i < 26; i++)
+      if (tr[0][i])
+        dfs(tr[0][i]);
+  }
+} AK;
+int n, p[MAXN];
+inline void work(signed CASE = 1, bool FINAL_CASE = false) {
+  cin >> n;
+  for (int i = 1; i <= n; i++)
+    cin >> T[i], AK.insert(T[i], i);
+  cin >> S;
+  AK.build();
+  AK.query(S);
+  AK.get();
+  for (int i = 1; i <= n; i++) {
+    cout << AK.ans[AK.end[i]] << "\n";
   }
 }
 ```

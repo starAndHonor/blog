@@ -11,6 +11,7 @@ something about AC自动机
    + 粗浅的理解:trie树+KMP
    + AC自动机上的每个点是一个状态，每一条边则是一种状态向另一种状态的转移，所以AC自动机可以和DP优雅地结合
    + AC自动机是一张图，所以许多图上算法在AC自动机上任然使用，所以经常构建完以后就变成了图论题
+   + 是一种离线数据结构，不能做到边插入边查询
 2. fail指针
    + 定义:表示从根节点到该节点所组成字符序列的所有后缀和整个模式字符串集合即整个Trie树中所有前缀两者中的最长公共部分。
    + fail指针的优化作用体现于可以减少不必要的重复匹配，类似于将KMP的border放在树上跳。
@@ -229,7 +230,7 @@ struct AC {
       q.pop();
     for (int i = 0; i < 26; i++)
       if (tr[0][i])
-        fail[tr[0][i]] = 0, q.push(tr[0][i]);
+        fail[tr[0][i]] = 0, q.push(tr[0][i]), F[0].push_back(tr[0][i]);//勿忘第一层Fail树指向根节点
     while (!q.empty()) {
       int u = q.front();
       q.pop();
@@ -273,6 +274,119 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
   AK.get();
   for (int i = 1; i <= n; i++) {
     cout << AK.ans[AK.end[i]] << "\n";
+  }
+}
+```
+>初始给定一堆字符串组成的字典，然后需要多次执行以下操作
+>1.添加一个字符串到字典中
+>2.给定一个字符串s，查询字典中字符串，统共在s里面出现了多少次
+>例如字典{ab,xyz} s = abxyzab 统共出现了3次 （可以计算重复的）
+```cpp
+//Sol:将操作离线（AC自动机是离线数据结构），然后转化为子树和问题，在dfn序使用数据结构（树状数组）维护答案
+string  S;
+struct BIT {//树状数组
+  int tr[MAXN];
+  inline void add(int pos, int val) {
+    for (; pos < MAXN; pos += pos & -pos)
+      tr[pos] += val;
+  }
+  inline void add(int l, int r, int val) { add(l, val), add(r + 1, -val); }
+  inline int query(int pos) {
+    int ans = 0;
+    for (; pos; pos -= pos & -pos)
+      ans += tr[pos];
+    return ans;
+  }
+  inline void init() { mmst0(tr); }
+} bit;
+struct AC {
+  int tr[MAXN][30], fail[MAXN], tot = 0, end[MAXN], tim = 0, dfn[MAXN],
+                                in[MAXN], out[MAXN];
+  vector<int> F[MAXN];
+  queue<int> q;
+  void clear() {
+    mmst0(tr), mmst0(fail), mmst0(end), tot = 0, bit.init();
+    for (int i = 0; i < MAXN; i++)
+      F[i].clear();
+    tim = 0;
+  }
+  int insert(string s) {
+    int u = 0, len = s.length();
+    for (int v, i = 0; i < len; i++) {
+      v = s[i] - 'a';
+      if (!tr[u][v])
+        tr[u][v] = ++tot;
+      u = tr[u][v];
+    }
+    end[u] = 1;
+    return u;
+  }
+  inline void build() {
+    while (q.size())
+      q.pop();
+    for (int i = 0; i < 26; i++)
+      if (tr[0][i])
+        fail[tr[0][i]] = 0, q.push(tr[0][i]), F[0].push_back(tr[0][i]);
+    while (!q.empty()) {
+      int u = q.front();
+      q.pop();
+      for (int i = 0; i < 26; i++)
+        if (tr[u][i])
+          fail[tr[u][i]] = tr[fail[u]][i], q.push(tr[u][i]),
+          F[tr[fail[u]][i]].push_back(tr[u][i]);
+        else
+          tr[u][i] = tr[fail[u]][i];
+    }
+  }
+  inline int query(string s) {
+    int u = 0, len = s.length(), res = 0;
+    for (int i = 0; i < len; i++) {
+      u = tr[u][s[i] - 'a'];
+      res += bit.query(dfn[u]);
+    }
+    return res;
+  }
+  inline void dfs(int u) {//得到dfn序
+    in[u] = dfn[u] = ++tim;
+    for (auto v : F[u])
+      dfs(v);
+    out[u] = tim;
+  }
+  inline void add(int u) { bit.add(in[u], out[u], 1); }
+} AK;
+int n, m, cnt, id[MAXN];
+struct Q {
+  int opt;
+  string s;
+} q[MAXN];
+inline void work(signed CASE = 1, bool FINAL_CASE = false) {
+  AK.clear();
+  cin >> n >> m;
+  for (int i = 1; i <= n; i++)
+    cin >> S, AK.insert(S);
+  cnt = 0;
+  for (int opt, i = 1; i <= m; i++) {
+    cin >> opt >> S;
+    if (opt == 1) {
+      id[++cnt] = AK.insert(S);
+      q[i] = {1, ""};
+      AK.end[id[cnt]] = 0;
+    } else {
+      q[i] = {2, S};
+    }
+  }
+  AK.build();
+  AK.dfs(0);
+  for (int i = 0; i < MAXN; i++) {
+    if (AK.end[i])
+      AK.add(i);
+  }
+  cnt = 0;
+  for (int i = 1; i <= m; i++) {
+    if (q[i].opt == 1)
+      AK.add(id[++cnt]);
+    else
+      cout << AK.query(q[i].s) << "\n";
   }
 }
 ```

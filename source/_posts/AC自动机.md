@@ -17,7 +17,7 @@ something about AC自动机
    + fail指针的优化作用体现于可以减少不必要的重复匹配，类似于将KMP的border放在树上跳。
    + 将所有的 fail 指针连成边，构成了一棵树
 ## 经典问题
->给定 n 个模式串和一个文本串t，求有多少个不同的模式串在文本串里出现过。两个模式串不同当且仅当他们编号不同。
++ 给定 n 个模式串和一个文本串t，求有多少个不同的模式串在文本串里出现过。两个模式串不同当且仅当他们编号不同。
 ```cpp
 struct AC {
   int tr[MAXN][30], cnt[MAXN], fail[MAXN], tot = 0;
@@ -75,7 +75,7 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
   cout << AK.query(s) << endl;
 }
 ```
->有 N 个由小写字母组成的模式串以及一个文本串 T。每个模式串可能会在文本串中出现多次。你需要找出哪些模式串在文本串 T 中出现的次数最多。
++ 有 N 个由小写字母组成的模式串以及一个文本串 T。每个模式串可能会在文本串中出现多次。你需要找出哪些模式串在文本串 T 中出现的次数最多。
 ```cpp
 string T[MAXN], S;
 struct AC {
@@ -145,7 +145,7 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
   }
 }
 ```
-> 一个文本串 S 和 n 个模式串 T ，请你分别求出每个模式串 T 在 S 中出现的次数。
++ 一个文本串 S 和 n 个模式串 T ，请你分别求出每个模式串 T 在 S 中出现的次数。
 ```cpp
 //Sol1:暴力统计 O(nm)
 string T[MAXN], S;
@@ -277,10 +277,10 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
   }
 }
 ```
->初始给定一堆字符串组成的字典，然后需要多次执行以下操作
->1.添加一个字符串到字典中
->2.给定一个字符串s，查询字典中字符串，统共在s里面出现了多少次
->例如字典{ab,xyz} s = abxyzab 统共出现了3次 （可以计算重复的）
++ 初始给定一堆字符串组成的字典，然后需要多次执行以下操作
+  1.添加一个字符串到字典中
+  2.给定一个字符串s，查询字典中字符串，统共在s里面出现了多少次
+例如字典{ab,xyz} s = abxyzab 统共出现了3次 （可以计算重复的）
 ```cpp
 //Sol:将操作离线（AC自动机是离线数据结构），然后转化为子树和问题，在dfn序使用数据结构（树状数组）维护答案
 string  S;
@@ -389,4 +389,86 @@ inline void work(signed CASE = 1, bool FINAL_CASE = false) {
       cout << AK.query(q[i].s) << "\n";
   }
 }
+```
++ 给出一个字典，至多包含60 个字典串，且字典串总长度不超过100。求所有长度为M($\le$ 10000) 的串中（共$26^M$ 个），有多少个串至少包含一个字典串。
+```cpp
+//直接统计不怎么好搞，于是考虑容斥，ans = 26^M - 一个字典串都不包含的串（记为P串）的个数
+//定义状态dp[i][u]表示匹配前长度为i的串，在节点匹配到u时候的P串个数
+//转移么，通常是通过枚举边转移的
+/*
+for (int i = 1; i <= m; i++)//枚举长度
+  for (int j = 0; j <= tot; j++)//枚举当前节点
+    for (int k = 0; k < 26; k++)//枚举下一个节点是哪个字符
+    //通过边(j,tr[j][k])构成转移
+*/
+//然后我们考虑怎样的dp转移是合法的，也就是什么样的串才是需要计数的P串
+//有一个BF想法:既然是要没有字典串被包含，那么就是在匹配的过程中跳到的节点不能是一个串的结尾
+//那么不妨在作为每一个字典串结尾的点上打上标记，dp转移前先暴力地跳fail，检验一下过程中每一个节点是否有标记
+//如果有标记则说明当前以节点结尾的那个字典串匹配上了当前枚举的串的前缀，所以是不合法的
+//但是在该数据范围下BF肯定是会TLE
+//于是考虑有优化:
+//优化1:考虑优化跳fail的过程,不妨建出fail树使用倍增优化跳fail查找是否有标记的过程
+//这样这一过程就有O(depth)->O(log depth)
+//优化2:观察不合法串的性质，发现串的合法性也有和fail指针类似的性质
+//儿子的合法性与fail指向的那个节点的儿子的合法性是相同
+//感性理解：如果当前节点的儿子到根的代表串是N，fail指向的那个节点的儿子到根代表的串是S
+//根据定义S肯定是N的子串，如果S不合法，那么就说明S会匹配上一个串，那么作为包含S的N也一定会匹配上一个串。
+//于是可以仿照bfs构建fail的过程来构建记录合法性的数组
+int n, m;
+const int mod = 1e4 + 7;
+string s;
+int dp[MAXN][MAXN];
+inline int qpow(int a, int b, int mod) {
+  int res = 1ll;
+  for (; b; b >>= 1, a = 1ll * a * a % mod)
+    if (b & 1)
+      res = 1ll * res * a % mod;
+  return res % mod;
+}
+struct AC {
+  int tr[MAXN][26], cnt[MAXN], fail[MAXN], tot;
+  bool ok[MAXN];
+  queue<int> q;
+  inline void insert(string s) {
+    int u = 0;
+    for (auto c : s) {
+      int v = c - 'A';
+      if (!tr[u][v])
+        tr[u][v] = ++tot;
+      u = tr[u][v];
+    }
+    ok[u] = true;
+  }
+  inline void build() {
+    while (q.size())
+      q.pop();
+    for (int i = 0; i < 26; i++)
+      if (tr[0][i])
+        fail[tr[0][i]] = 0, q.push(tr[0][i]);
+    while (q.size()) {
+      int u = q.front();
+      q.pop();
+      for (int i = 0; i < 26; i++)
+        if (tr[u][i])
+          fail[tr[u][i]] = tr[fail[u]][i], ok[tr[u][i]] |= ok[tr[fail[u]][i]],//here 在构建合法性数组ok
+          q.push(tr[u][i]);
+        else
+          tr[u][i] = tr[fail[u]][i];
+    }
+  }
+  inline int query() {
+    dp[0][0] = 1;
+    for (int i = 1; i <= m; i++)
+      for (int j = 0; j <= tot; j++)
+        for (int k = 0; k < 26; k++)
+          if (!ok[tr[j][k]])
+            dp[i][tr[j][k]] = (dp[i][tr[j][k]] + dp[i - 1][j]) % mod;
+            //转移  代表的是j通过(j,tr[j][k])(对应事件:匹配了一位为k的字符)到达tr[j][k]时所带来的方案数
+            //匹配长度为i时当前节点(tr[j][k])到达的合法方案数 sum(能转移到当前节点的节点合法方案数(dp[i-1][j])) 
+    int ans = qpow(26, m, mod);
+    for (int i = 0; i <= tot; i++)
+      ans = (ans - dp[m][i] + mod) % mod;
+    return ans;
+  }
+} AK;
 ```
